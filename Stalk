@@ -1,0 +1,210 @@
+--// Prevent multiple executions from overlapping or double-gifting
+if _G.AttractionScriptRunning then 
+    warn("Stalk script is already running!")
+    return 
+end
+_G.AttractionScriptRunning = true
+
+if _G.hasAttractionBadge == nil then
+    _G.hasAttractionBadge = false
+end
+
+--// Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local SoundService = game:GetService("SoundService")
+
+local player = Players.LocalPlayer
+
+--// Load Vynixu's Achievement Utility Safely
+local achievementGiver2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Doors/Custom%20Achievements/Source.lua"))()
+
+--// Check current room
+local entityModel = true
+local latestRoomValue = game.ReplicatedStorage.GameData.LatestRoom.Value
+
+if game.Workspace:FindFirstChild("SeekMovingNewClone")
+or latestRoomValue == 50
+or latestRoomValue == 100
+or (latestRoomValue >= 90 and latestRoomValue <= 100) then
+    entityModel = false
+end
+
+--// Load asset safely
+local success, assets = pcall(function()
+    return game:GetObjects("rbxassetid://97101874441016")
+end)
+
+if not success or not assets or #assets == 0 or not assets[1] then
+    warn("Attraction asset failed to load or index was nil")
+    _G.AttractionScriptRunning = nil
+    return
+end
+
+local root = assets[1]
+
+-- Find Model inside asset
+local model = nil
+if root:IsA("Model") then
+    model = root
+else
+    for _, v in ipairs(root:GetDescendants()) do
+        if v:IsA("Model") then
+            model = v
+            break
+        end
+    end
+end
+
+if not model then
+    warn("No model found inside Attraction asset")
+    _G.AttractionScriptRunning = nil
+    return
+end
+
+model.Parent = workspace
+model.Name = "Greed"
+
+local greed = workspace:WaitForChild("Greed")
+
+--// --- FIXED GLOBAL SOUND LOGIC (PLAYS ON SCREEN) ---
+local GITHUB_SOUND_URL = "https://github.com/reboundplayz/Doors-Fixed-Modes/raw/refs/heads/main/Video%20Project%204.mp3"
+
+task.spawn(function()
+    if writefile and getcustomasset then
+        local fileName = "AttractionSpawn_Global.mp3"
+        local soundSuccess, audioData = pcall(function() return game:HttpGet(GITHUB_SOUND_URL) end)
+        
+        if soundSuccess and audioData then
+            writefile(fileName, audioData)
+            
+            local sound = Instance.new("Sound")
+            sound.Name = "GlobalSpawnEffect"
+            
+            -- Try standard custom asset string fallback if file:// protocol is needed by your executor
+            local assetId = getcustomasset(fileName)
+            if not assetId:find("://") then
+                assetId = "file://" .. fileName
+            end
+            sound.SoundId = assetId
+            
+            -- Screen Playback Settings (No 3D roll-off components)
+            sound.Volume = 5 -- 5-10 is incredibly loud for a global non-3D sound
+            sound.Looped = false 
+            
+            -- Parent to SoundService so it plays directly through your headset/screen
+            sound.Parent = SoundService
+            sound:Play()
+            
+            sound.Ended:Connect(function()
+                sound:Destroy()
+            end)
+        else
+            warn("Failed to download sound data from GitHub URL.")
+        end
+    else
+        warn("Executor environment lacks writefile or getcustomasset functions.")
+    end
+end)
+
+--// Safely disable lights
+local effects = greed:FindFirstChild("Effects")
+if effects then
+    local p2 = effects:FindFirstChild("PointLight2")
+    if p2 then p2:Destroy() end
+
+    local p1 = effects:FindFirstChild("PointLight")
+    if p1 then
+        p1.Range = 0
+        TweenService:Create(p1, TweenInfo.new(3), {Range = 20}):Play()
+    end
+end
+
+--// Find a valid part
+local part
+for _, v in ipairs(greed:GetDescendants()) do
+    if v:IsA("BasePart") then
+        part = v
+        break
+    end
+end
+
+if not part then
+    warn("Greed has no BasePart")
+    _G.AttractionScriptRunning = nil
+    return
+end
+
+--// Position in room
+task.wait(1)
+local rooms = workspace:WaitForChild("CurrentRooms"):GetChildren()
+local lastRoom = rooms[#rooms - 1]
+
+if lastRoom and lastRoom:FindFirstChild("Parts") and lastRoom.Parts:FindFirstChild("Floor") then
+    part.CFrame = lastRoom.Parts.Floor.CFrame + Vector3.new(0, 6, 0)
+end
+
+--// Main logic
+local GreedStatus = true
+
+task.spawn(function()
+    while GreedStatus do
+        task.wait(0.3)
+        local char = player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        local cam = workspace.CurrentCamera
+
+        if hum and cam and part and part.Parent then
+            local direction = (part.Position - cam.CFrame.Position).Unit
+            local look = cam.CFrame.LookVector
+            local dot = look:Dot(direction)
+
+            if dot < 0.5 then
+                hum:TakeDamage(5)
+            end
+
+            if hum.Health <= 0 then
+                firesignal(
+                    game.ReplicatedStorage.RemotesFolder.DeathHint.OnClientEvent,
+                    {
+                        "You died to who you call Attraction...",
+                        "He spawns in the center and damages you if you don't look at him"
+                    },
+                    "Blue"
+                )
+                
+                pcall(function()
+                    game:GetService("ReplicatedStorage").GameStats["Player_" .. player.Name].Total.DeathCause.Value = "Attraction"
+                end)
+            end
+        end
+    end
+end)
+
+--// Cleanup, despawn
+game.ReplicatedStorage.GameData.LatestRoom.Changed:Connect(function()
+    GreedStatus = false
+    
+    -- Award the badge right as he despawns
+    if not _G.hasAttractionBadge then
+        _G.hasAttractionBadge = true
+        if achievementGiver2 then
+            task.spawn(function()
+                achievementGiver2({
+                    Title = "Stalking you",
+                    Desc = "I see you and you see me",
+                    Reason = "Encounter Stalk",
+                    Image = "rbxassetid://140132127736774"
+                })
+            end)
+        end
+    end
+
+    if workspace:FindFirstChild("Greed") then
+        workspace.Greed:Destroy()
+    end
+    
+    -- Reset execution flag so it can spawn again on next execution
+    _G.AttractionScriptRunning = nil
+end)
