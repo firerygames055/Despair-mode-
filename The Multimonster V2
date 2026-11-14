@@ -157,7 +157,7 @@ entity:SetCallback("OnDamagePlayer", function(newHealth)
 			local killSound = Instance.new("Sound")
 			killSound.Parent = workspace
 			killSound.PlaybackSpeed = 1
-			killSound.SoundId = "rbxassetid://18459521002"
+			killSound.SoundId = "rbxassetid://127403234941202"
 			killSound.Name = "Dear god death sound chat"
 			killSound.Volume = 10
 			killSound.Looped = true
@@ -180,7 +180,7 @@ entity:SetCallback("OnDamagePlayer", function(newHealth)
 			face.AnchorPoint = Vector2.new(0.5, 0.5)
 			face.Position = UDim2.new(0.5, 0, 0.589, 0)
 			face.Size = UDim2.new(0, 1, 0, 1)
-			face.Image = "rbxassetid://12078778205"
+			face.Image = "rbxassetid://136343543761017"
 			face.BackgroundTransparency = 1
 
 			local text = Instance.new("ImageLabel", screenGui)
@@ -229,7 +229,7 @@ entity:SetCallback("OnDamagePlayer", function(newHealth)
 			task.spawn(function()
 				while not stopEffects do
 					face.Rotation = 10
-					face.Image = "rbxassetid://12078778205"
+					face.Image = "rbxassetid://133957529033898"
 					task.wait(0)
 					face.Rotation = -10
 					task.wait(0)
