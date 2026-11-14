@@ -20,15 +20,6 @@ cue.SoundId = "rbxassetid://101758088162234"
 cue.Volume = 5
 cue:Play()
 
-task.wait(1)
-
-local cue2 = Instance.new("Sound")
-cue2.Parent = workspace
-cue2.Name = "Spawn2"
-cue2.SoundId = "rbxassetid://101758088162234"
-cue2.Volume = 5
-cue2:Play()
-
 -- Room colour change
 local redtweeninfo = TweenInfo.new(3)
 local redinfo = {Color = Color3.new(1, 0, 0)}
@@ -287,3 +278,14 @@ entity:SetCallback("OnDamagePlayer", function(newHealth)
 end)
 
 entity:Run()
+
+---====== Load achievement giver ======---
+local achievementGiver = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Doors/Custom%20Achievements/Source.lua"))()
+
+---====== Display achievement ======---
+achievementGiver({
+    Title = "Difficult breathing",
+    Desc = "Might come back",
+    Reason = "Encounter and survive a rare entity know as A-60",
+    Image = "rbxassetid://110592293391287"
+})
