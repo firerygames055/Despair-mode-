@@ -50,7 +50,7 @@ end)
 camShake:Start()
 camShake:Shake(CameraShaker.Presets.Earthquake)
 
-task.wait(11)
+task.wait(1)
 
 -- ====== Create the entity ======
 local entity = spawner.Create({
